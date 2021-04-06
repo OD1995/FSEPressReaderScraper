@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup as BS
 from selenium import webdriver
 import azure.functions as func
 import pyodbc
+from azure.storage.blob import BlockBlobService
+import uuid
 
 def run_sql_command(
     sqlQuery,
@@ -32,7 +34,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     ## Create the driver with options
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--headless')
+    # chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     driver = webdriver.Chrome("/usr/local/bin/chromedriver", chrome_options=chrome_options)
@@ -40,13 +42,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ## Go to time.is and get the time
     driver.get("https://time.is/")
     logging.info("site navigated to")
-    soup = BS(driver.page_source,'lxml')
+    soup = BS(driver.page_source,'html.parser')
     logging.info("soup retrieved")
     clock0_bg = soup.find("div",{"id" : "clock0_bg"})
     currentTime = "".join([
         x.text
         for x in clock0_bg.find_all("span")
         ])
+    ## Take screenshot and save it
+    cs = "DefaultEndpointsProtocol=https;AccountName=fsecustomvisionimages;AccountKey=0gbOTBrl68MCGXlu6vHRK6DyQOIjRI5HRgTmfReCDW2cTmUnkCITP7DBRme9zI2yRsdWOrPxkDdz3v8Ti5Q3Zw==;EndpointSuffix=core.windows.net"
+    block_blob_service.create_blob_from_bytes(
+        container_name="test",
+        blob_name=str(uuid.uuid4()) + ".png",
+        blob=driver.get_screenshot_as_png()
+    )
     ## Send to SQL
     Q = f"""INSERT INTO DockerTesting ([Value]) VALUES ('{currentTime}')"""
     logging.info(f"Q: {Q}")
@@ -54,8 +63,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         sqlQuery=Q,
         database="TestDb"
     )
+    ## This is a tiny and pointless change
     logging.info("command run")
     return func.HttpResponse(
              currentTime,
              status_code=200
     )
+    driver.quit()
