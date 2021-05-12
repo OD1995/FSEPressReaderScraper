@@ -156,8 +156,154 @@ def scrape_PressReader(
     PressReaderPublicationPages = pd.DataFrame(PressReaderPublicationPages_rows)
     PressReaderArticles = pd.DataFrame(PressReaderArticles_rows)
     PressReaderImages = pd.DataFrame(PressReaderImages_rows)
-    
 
+    upload_to_sql(
+        df=PressReaderPublicationPages,
+        sqlName="PressReaderPublicationPages"
+    )
+    upload_to_sql(
+        df=PressReaderArticles,
+        sqlName="PressReaderArticles"
+    )
+    upload_to_sql(
+        df=PressReaderImages,
+        sqlName="PressReaderImages"
+    )
+
+def upload_to_sql(
+    df,
+    sqlName
+):
+    db = "PhotoTextTrack"
+    if sqlName == "PressReaderPublicationPages":
+        columnDict = {
+            "PublicationPageID" : "str",
+            "PageImageURL" : "str",
+            "PublicationName" : "str",
+            "Date" : "Date",
+            "PageNumber" : "int",
+            "IsFrontPage" : "bit",
+            "IsBackPage" : "bit"
+        }
+        ## Get insert commmand
+        iq = create_insert_query(
+            df=df,
+            columnDict=columnDict,
+            sqlTableName=sqlName
+        )
+        ## Run commmand
+        run_sql_command(
+            sqlQuery=iq,
+            database=db
+        )
+
+    elif sqlName == "PressReaderArticles":
+        columnDict = {
+            "PublicationPageID" : "str",
+            "PressReaderArticleID" : "str",
+            "Title" : "str",
+            "Subtitle" : "str",
+            "Text" : "str",
+            "Author" : "str"
+        }
+        ## Get insert commmand
+        iq = create_insert_query(
+            df=df,
+            columnDict=columnDict,
+            sqlTableName=sqlName
+        )
+        ## Run commmand
+        run_sql_command(
+            sqlQuery=iq,
+            database=db
+        )
+
+    elif sqlName == "PressReaderImages":
+        columnDict = {
+            "PublicationPageID" : "str",
+            "PressReaderImageID" : "str",
+            "PressReaderAssociatedArticleID" : "str",
+            "ImageURL" : "str"
+        }
+        ## Get insert commmand
+        iq = create_insert_query(
+            df=df,
+            columnDict=columnDict,
+            sqlTableName=sqlName
+        )
+        ## Run commmand
+        run_sql_command(
+            sqlQuery=iq,
+            database=db
+        )
+
+    else:
+        raise ValueError("Unrecognised sqlName: `{sqlName}`")
+
+def rows_to_strings(df,columnDict):
+    
+    listToReturn = []
+    
+    ## Loop throw the rows (as dicts)
+    for row_dict in df.to_dict(orient="records"):
+        ## Create list of strings formatted in the way SQL expects them
+        ##    based on their SQL data type
+        rowList = [sqlise(
+                    _val_=row_dict[colName],
+                    _format_=colType
+                            )
+                    for colName,colType in columnDict.items()]
+        ## Create SQL ready string out of the list
+        stringRow = "\n(" + ",".join(rowList) + ")"
+        ## Add string to list
+        listToReturn.append(stringRow)
+        
+    return listToReturn
+
+            
+def sqlise(_val_,_format_):
+    if _val_ is None:
+        return "NULL"
+    elif _format_ == "str":
+        return "'" + _val_.replace("'","''") + "'"
+    elif _format_ == "DateTime":
+        ## datetime gives 6 microsecond DPs, SQL only takes 3
+        return "'" + _val_.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + "'"
+    elif _format_ == "Date":
+        return "'" + _val_.strftime("%Y-%m-%d") + "'"
+    elif _format_ == "int":
+        return str(_val_)
+    elif _format_ == "bit":
+        if _val_ == True:
+            return str(1)
+        elif _val_ == False:
+            return str(0)
+        else:
+            return ValueError(f"Unacceptable value (`{_val_}`) for format (`{_format_}`)")
+    else:
+        raise ValueError(f"Data type `{_format_}` not expected")
+
+    
+def create_insert_query(df,columnDict,sqlTableName):
+    """
+    Inputs: - df - pandas.DataFrame
+            - columnDict - dict - keys - column names
+                                - vals - column (rough) SQL data types (as strings)
+            - sqlTableName - str
+    Output: - SQL insert query - str
+    """
+    ## Create column list string
+    columnsListStr = "[" + "],[".join(columnDict.keys()) + "]"
+    ## Convert df into a string of rows to upload
+    stringRows = rows_to_strings(df,columnDict)
+    
+    
+    Q = f"""
+INSERT INTO {sqlTableName}
+({columnsListStr})
+VALUES {','.join(stringRows)}
+    """
+    return Q
 
 def get_text(articleJS):
     if articleJS['Blocks'] is None:
