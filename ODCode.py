@@ -24,21 +24,21 @@ START = datetime.now()
 accessToken = "LpyrD0kdN70fR5eb_UjeVWPz6FFuWH-1leMi3b81tcVYceXmMl1G2UGOgwQb9KlfmaOHb0EHJueEnxarYQdSkA!!"
 
 
-publicationCIDs = [
-        "9a63",
-        "9j66",
-        "9e10"
-        ]
+#publicationCIDs = [
+#        "9a63",
+#        "9j66",
+#        "9e10"
+#        ]
 
 #startdate = "2021-01-09"
 #enddate = "2021-01-09"
-startdate = "2021-03-25"
-enddate = "2021-03-25"
-newspaperlistchild = [
-#        "https://www.pressreader.com/australia/the-west-australian/",
-#        "https://www.pressreader.com/australia/the-guardian-australia/",
-        "https://www.pressreader.com/australia/cockburn-gazette/"
-                ]
+startdate = "2021-02-07"
+enddate = "2021-02-23"
+#newspaperlistchild = [
+##        "https://www.pressreader.com/australia/the-west-australian/",
+##        "https://www.pressreader.com/australia/the-guardian-australia/",
+#        "https://www.pressreader.com/australia/cockburn-gazette/"
+#                ]
 
 publishDaysDF = sql_helper.fromSQL(
             servername="inf",
@@ -55,7 +55,7 @@ publicationsDF = sql_helper.fromSQL(
 publicationsDict = {
                     k:v
                     for k,v in publicationsDF.to_dict('index').items()
-                    if k in publicationCIDs
+                    if k in publishDaysDict
                     }
 
 dotwDict = {
@@ -103,6 +103,12 @@ for publicationCID,otherInfo in publicationsDict.items():
                                 ,"cid" : publicationCID
                                 ,"issueDate" : dateStr
                                 }).json()
+        ## Skip to next date if there was no issue on this date
+        em = f"The issue for cid {publicationCID} and issueDate {dateStr} is not found"
+        if "message" in issueMetaJS:
+            if issueMetaJS["message"] == em:
+                print(em)
+                continue
         totalPages = issueMetaJS['Pages']
         issueID = issueMetaJS['Issue']['Issue']
         print(f"totalPages: {totalPages}")
