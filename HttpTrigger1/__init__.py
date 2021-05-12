@@ -63,3 +63,5 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             else:
                 logging.info(f"{[publicationName,date]} already done")
+
+    return func.HttpResponse(f"Done")
