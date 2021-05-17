@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import uuid
 import pyodbc
+import os
 import logging
 
 def get_df_from_sqlQuery(
@@ -47,22 +48,18 @@ def get_connection_string(database):
 def scrape_PressReader(
     publicationCID,
     date,
-    otherInfo,
+    publicationName,
     sleepSecs
 ):
     logging.info(f"publicationCID: {publicationCID}")
+    logging.info(f"Publication Name: {publicationName}")
     logging.info(f"date: {date}")
-    accessToken = "LpyrD0kdN70fR5eb_UjeVWPz6FFuWH-1leMi3b81tcVYceXmMl1G2UGOgwQb9KlfmaOHb0EHJueEnxarYQdSkA!!"
-
+    accessToken = os.getenv("PressReader_AccessToken")
 
     PressReaderPublicationPages_rows = []
     PressReaderArticles_rows = []
     PressReaderImages_rows = []
 
-    news = otherInfo['Name']
-    # countrySlug = otherInfo['CountrySlug']
-    # slug = otherInfo['Slug']
-    print(f"Publication Name: {news}")
     
     # myIssueID = (publicationCID,date)
     
@@ -93,7 +90,7 @@ def scrape_PressReader(
         tba1['PublicationPageID'] = str(uuid.uuid4())
         checkurl = f"https://t.prcdn.co/img?file={issueID}&page={pgNumber}&scale=54"
         tba1['PageImageURL'] = checkurl
-        tba1['PublicationName'] = news
+        tba1['PublicationName'] = publicationName
         tba1['Date'] = date
         tba1['PageNumber'] = pgNumber
         if pgNumber == 1: 
@@ -161,14 +158,17 @@ def scrape_PressReader(
         df=PressReaderPublicationPages,
         sqlName="PressReaderPublicationPages"
     )
+    logging.info("PressReaderPublicationPages in SQL")
     upload_to_sql(
         df=PressReaderArticles,
         sqlName="PressReaderArticles"
     )
+    logging.info("PressReaderArticles in SQL")
     upload_to_sql(
         df=PressReaderImages,
         sqlName="PressReaderImages"
     )
+    logging.info("PressReaderImages in SQL")
 
 def upload_to_sql(
     df,
@@ -265,7 +265,7 @@ def sqlise(_val_,_format_):
     if _val_ is None:
         return "NULL"
     elif _format_ == "str":
-        return "'" + _val_.replace("'","''") + "'"
+        return "'" + str(_val_).replace("'","''") + "'"
     elif _format_ == "DateTime":
         ## datetime gives 6 microsecond DPs, SQL only takes 3
         return "'" + _val_.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + "'"
@@ -310,16 +310,6 @@ def get_text(articleJS):
         return None
     returnMe = ""
     for i,block in enumerate(articleJS['Blocks'],1):
-#        oks = ['text','annotation']
-#        if (block['Role'] not in oks):# or (block['Markups'] is not None):
-#            errorDict = {
-#                    "ArticleID" : articleJS['Id']
-#                    ,"BlockNumber" : f"{i}of{len(articleJS['Blocks'])}"
-#                    ,"Publication" : articleJS['Issue']['Title']
-#                    ,"Date" : articleJS['Issue']['ShortDateString']
-#                    }
-#            raise ValueError(errorDict)
-#        else:
         ## Text contains "soft hyphens" in the form of "\xad", remove them
         returnMe += block['Text'].replace("\xad","")
     
@@ -332,3 +322,32 @@ def get_subtitle(subtitle):
         return None
     else:
         return subtitle
+
+def update_row_status(
+    publicationCID,
+    publishedDate,
+    status=None,
+    uri=None
+):
+    currentDateTimeStr = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    publishedDateStr = publishedDate.strftime("%Y-%m-%d")
+    if status is not None:
+    ## Build update statement
+        us = f"""
+        UPDATE PressReaderScrapeQueue
+        SET [Status] = '{status}', [StatusUpdatedDateTime] = '{currentDateTimeStr}'
+        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDateStr}'
+        """
+    elif uri is not None:
+        us = f"""
+        UPDATE PressReaderScrapeQueue
+        SET [StatusQueryGetUri] = '{uri}'
+        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDateStr}'
+        """
+    else:
+        raise ValueError("both `status` and `uri` are None")
+    ## Run statement
+    run_sql_command(
+        sqlQuery=us,
+        database="PhotoTextTrack"
+    )

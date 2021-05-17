@@ -10,9 +10,18 @@ from MyFunctions import (
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
-    listOfCIDs = req.params.get("listOfCIDs")
-    startDate = req.params.get("startDate") # yyyy-mm-dd
-    endDate = req.params.get("endDate") # yyyy-mm-dd
+    ## Get the time the function started
+    START = datetime.now()
+
+    listOfCIDs = req.get_json()["listOfCIDs"]
+    # listOfCIDs2 = list(req.params.get("listOfCIDs"))
+    logging.info(f"listOfCIDs: {listOfCIDs}")
+    logging.info(f"listOfCIDs type: {type(listOfCIDs)}")
+    # logging.info(f"listOfCIDs2: {listOfCIDs2}")
+    # logging.info(f"listOfCIDs2 type: {type(listOfCIDs2)}")
+    assert isinstance(listOfCIDs,list)
+    startDate = req.get_json()["startDate"] # yyyy-mm-dd
+    endDate = req.get_json()["endDate"] # yyyy-mm-dd
     ## Create date range
     start = datetime.strptime(startDate, "%Y-%m-%d")
     end = datetime.strptime(endDate, "%Y-%m-%d")
@@ -28,7 +37,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         sqlQuery="SELECT * FROM PressReaderPublications",
         database="PhotoTextTrack"
     ).set_index('PublicationCID')
-    publicationsDict = publicationsDF.to_dict('index').items()
+    publicationsDict = publicationsDF.to_dict('index')
     ## Get the publication-date combinations already scraped
     alreadyScraped = get_df_from_sqlQuery(
         sqlQuery="SELECT DISTINCT [PublicationName],[Date] FROM PressReaderPublicationPages",
@@ -41,20 +50,27 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             alreadyScraped.Date
         )
     ]
-    ## Sample logging
-    logging.info(f"d: {alreadyScrapedList[0][1]}")
-    logging.info(f"d type: {type(alreadyScrapedList[0][1])}")
-    logging.info(f"date: {dates[0]}")
-    logging.info(f"date type: {type(dates[0])}")
+    # ## Sample logging
+    # logging.info(f"d: {alreadyScrapedList[0][1]}")
+    # logging.info(f"d type: {type(alreadyScrapedList[0][1])}")
+    # logging.info(f"date: {dates[0]}")
+    # logging.info(f"date type: {type(dates[0])}")
 
-
-    sleepSecs = [1 + (x/1000) for x in range(2000)]
+    sleepSecs = [x/1000 for x in range(2000)]
     ## Loop through the combinations
     for publicationCID in listOfCIDs:  
         otherInfo = publicationsDict[publicationCID]
         publicationName = otherInfo['Name']
         for date in dates:
             if [publicationName,date] not in alreadyScrapedList:
+                if (datetime.now() - START).total_seconds() >= (60 * 25):
+                    raise TimeoutError(
+                        (
+                            "About to timeout anyway, stopped in"
+                            " case the actual 30 min timeout happened halfway"
+                            " through a set of SQL uploads"
+                        )
+                    )
                 scrape_PressReader(
                     publicationCID,
                     date,
