@@ -7,11 +7,12 @@
 # - run pip install -r requirements.txt
 
 import logging
-from MyFunctions import (
+from ..MyFunctions import (
     update_row_status,
     scrape_PressReader,
     get_df_from_sqlQuery
 )
+import traceback
 
 
 def main(inputDict: dict) -> str:
@@ -52,7 +53,7 @@ def main(inputDict: dict) -> str:
         logging.info("row updated to `Finished`")
         return "success"
 
-    except Exception as e:
+    except Exception as error:
         ## Update row status
         update_row_status(
             publicationCID,
@@ -60,5 +61,6 @@ def main(inputDict: dict) -> str:
             status="Error"
         )
         logging.info("row updated to `Error`")
+        # logging.error(error)
         ## Raise error
-        raise Exception(e.args)
+        raise Exception("".join(traceback.TracebackException.from_exception(error).format()))

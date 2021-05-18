@@ -2,9 +2,10 @@ import logging
 from datetime import datetime, timedelta
 import azure.functions as func
 import pandas as pd
-from MyFunctions import (
+from ..MyFunctions import (
     create_insert_query,
-    run_sql_command
+    run_sql_command,
+    remove_duplicates
 )
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -18,7 +19,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         ##    startDate (%Y-%m-%d)
         ##    endDate (%Y-%m-%d)
         logging.info(f"pubInfo: {pubInfo}")
-        publicationCID = pubInfo['pubInfo']
+        publicationCID = pubInfo['publicationCID']
         startDate = pubInfo['startDate']
         endDate = pubInfo['endDate']
         ## Create list from startDate to endDate
@@ -36,7 +37,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             ),
             columnDict={
                 "PublicationCID" : "str",
-                "PublishedDate" : "date"
+                "PublishedDate" : "Date"
             },
             sqlTableName="PressReaderScrapeQueue"
         )
@@ -45,3 +46,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             sqlQuery=insertCommand,
             database="PhotoTextTrack"
         )
+
+    remove_duplicates(
+        columnList=[
+            "PublicationCID",
+            "PublishedDate"
+        ],
+        sqlTableName="PressReaderScrapeQueue",
+        primaryKeyColName="RowID"
+    )
+
+    return "done"

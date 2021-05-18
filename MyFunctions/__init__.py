@@ -51,9 +51,13 @@ def scrape_PressReader(
     publicationName,
     sleepSecs
 ):
+    dateStr = datetime.strptime(
+        date,
+        "%Y-%m-%d"
+    ).strftime("%Y%m%d")
     logging.info(f"publicationCID: {publicationCID}")
     logging.info(f"Publication Name: {publicationName}")
-    logging.info(f"date: {date}")
+    logging.info(f"date: {dateStr}")
     accessToken = os.getenv("PressReader_AccessToken")
 
     PressReaderPublicationPages_rows = []
@@ -63,7 +67,6 @@ def scrape_PressReader(
     
     # myIssueID = (publicationCID,date)
     
-    dateStr = date.strftime('%Y%m%d')
     sleep(random.choice(sleepSecs))
     issueMetaJS = requests.get(
                     url="https://www.pressreader.com/api/IssueInfo/GetIssueInfoByCid",
@@ -270,7 +273,10 @@ def sqlise(_val_,_format_):
         ## datetime gives 6 microsecond DPs, SQL only takes 3
         return "'" + _val_.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + "'"
     elif _format_ == "Date":
-        return "'" + _val_.strftime("%Y-%m-%d") + "'"
+        if isinstance(_val_,str):
+            return "'" + _val_ + "'"
+        else:
+            return "'" + _val_.strftime("%Y-%m-%d") + "'"
     elif _format_ == "int":
         return str(_val_)
     elif _format_ == "bit":
@@ -330,24 +336,42 @@ def update_row_status(
     uri=None
 ):
     currentDateTimeStr = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    publishedDateStr = publishedDate.strftime("%Y-%m-%d")
+    
     if status is not None:
     ## Build update statement
         us = f"""
         UPDATE PressReaderScrapeQueue
         SET [Status] = '{status}', [StatusUpdatedDateTime] = '{currentDateTimeStr}'
-        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDateStr}'
+        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDate}'
         """
     elif uri is not None:
         us = f"""
         UPDATE PressReaderScrapeQueue
         SET [StatusQueryGetUri] = '{uri}'
-        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDateStr}'
+        WHERE [PublicationCID] = '{publicationCID}' AND [PublishedDate] = '{publishedDate}'
         """
     else:
         raise ValueError("both `status` and `uri` are None")
     ## Run statement
     run_sql_command(
         sqlQuery=us,
+        database="PhotoTextTrack"
+    )
+
+def remove_duplicates(columnList,sqlTableName,primaryKeyColName):
+    
+    ## Create column list string
+    columnsListStr = "[" + "],[".join(columnList) + "]"
+    Q = f"""
+    WITH ToDelete AS (
+       SELECT ROW_NUMBER() OVER
+           (PARTITION BY {columnsListStr} ORDER BY {primaryKeyColName}) AS rn
+       FROM {sqlTableName}
+    )
+    DELETE FROM ToDelete
+    WHERE rn > 1
+    """
+    run_sql_command(
+        sqlQuery=Q,
         database="PhotoTextTrack"
     )

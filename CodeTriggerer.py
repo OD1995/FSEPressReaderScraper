@@ -3,7 +3,7 @@ from datetime import datetime
 S = datetime.now()
 print(S)
 
-listOfCIDs = [
+#listOfCIDs = [
 
 #'1970',
 #'8587',
@@ -21,17 +21,38 @@ listOfCIDs = [
 #'9029',
 #'1763',
 #'1700',
-            '9a63',
+#            '9a63',
+#        ]
+#r = requests.post(
+#        url="https://fsepressreaderscraper.azurewebsites.net/api/HttpTrigger1",
+#        json={
+#                "listOfCIDs" : listOfCIDs,
+#                "startDate" : "2021-02-07",
+#                "endDate" : "2021-02-23"
+#                })
+#E = datetime.now()
+#print(r)
+#print(r.text)
+#print(E-S)
+#print(E)
+
+CIDs = [
+'9a63'
         ]
-r = requests.post(
-        url="https://fsepressreaderscraper.azurewebsites.net/api/HttpTrigger1",
-        json={
-                "listOfCIDs" : listOfCIDs,
-                "startDate" : "2021-02-07",
+
+JS = [
+      {
+                "publicationCID" : cid,
+                "startDate" : "2021-02-20",
                 "endDate" : "2021-02-23"
-                })
-E = datetime.now()
+        }
+      for cid in CIDs
+      
+      ]
+
+r = requests.post(
+        url="https://fsepressreaderscraper.azurewebsites.net/api/HttpTriggerAddToQueue",
+        json=JS)
+
 print(r)
 print(r.text)
-print(E-S)
-print(E)

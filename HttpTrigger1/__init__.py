@@ -1,7 +1,7 @@
 import logging
 import azure.functions as func
 from datetime import datetime, timedelta
-from MyFunctions import (
+from ..MyFunctions import (
     get_df_from_sqlQuery,
     scrape_PressReader
 )
