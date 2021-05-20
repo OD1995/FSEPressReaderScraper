@@ -18,7 +18,6 @@ async def main(req: func.HttpRequest, starter: str) -> func.HttpResponse:
     logging.info(f"Started orchestration with ID = '{instance_id}'.")
 
     csr = client.create_check_status_response(req, instance_id)
-    logging.info(dir(csr))
     A = json.loads(csr.get_body())
     logging.info(A.get("statusQueryGetUri"))
     ## Set StatusQueryGetUri value in SQL

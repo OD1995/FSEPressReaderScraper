@@ -59,6 +59,8 @@ def scrape_PressReader(
     logging.info(f"Publication Name: {publicationName}")
     logging.info(f"date: {dateStr}")
     accessToken = os.getenv("PressReader_AccessToken")
+    # accessToken = "LpyrD0kdN70fR5eb_UjeVWPz6FFuWH-1leMi3b81tcVYceXmMl1G2UGOgwQb9KlfmaOHb0EHJueEnxarYQdSkA!!"
+
 
     PressReaderPublicationPages_rows = []
     PressReaderArticles_rows = []
@@ -68,13 +70,15 @@ def scrape_PressReader(
     # myIssueID = (publicationCID,date)
     
     sleep(random.choice(sleepSecs))
-    issueMetaJS = requests.get(
+    issueMetaReq = requests.get(
                     url="https://www.pressreader.com/api/IssueInfo/GetIssueInfoByCid",
                     params={
                             "accessToken" : accessToken
                             ,"cid" : publicationCID
                             ,"issueDate" : dateStr
-                            }).json()
+                            })
+    logging.info(issueMetaReq.url)
+    issueMetaJS = issueMetaReq.json()
     ## Skip to next date if there was no issue on this date
     em = f"The issue for cid {publicationCID} and issueDate {dateStr} is not found"
     if "message" in issueMetaJS:
@@ -84,6 +88,10 @@ def scrape_PressReader(
     totalPages = issueMetaJS['Pages']
     issueID = issueMetaJS['Issue']['Issue']
     logging.info(f"totalPages: {totalPages}")
+    pageScales = {
+        pageInfo['PageNumber'] : pageInfo['MaxUnrestrictedScale']
+        for pageInfo in issueMetaJS['PagesInfo']
+    }
     
     ## For every page in the publication, 
     for pgNumber in range(1,totalPages+1):
@@ -91,7 +99,10 @@ def scrape_PressReader(
         tba1 = {}
         ## Create a UUID for each publication page
         tba1['PublicationPageID'] = str(uuid.uuid4())
-        checkurl = f"https://t.prcdn.co/img?file={issueID}&page={pgNumber}&scale=54"
+        scale = pageScales[pgNumber]
+        if scale == 0:
+            scale = max(pageScales.values())
+        checkurl = f"https://t.prcdn.co/img?file={issueID}&page={pgNumber}&scale={scale}"
         tba1['PageImageURL'] = checkurl
         tba1['PublicationName'] = publicationName
         tba1['Date'] = date
@@ -109,26 +120,30 @@ def scrape_PressReader(
         
         ## Get articles on the page
         sleep(random.choice(sleepSecs))
-        articleIDsJS = requests.get(
+        articleIDsReq = requests.get(
                 url="https://www.pressreader.com/api/pagesMetadata",
                 params={
                         "accessToken" : accessToken
                         ,"issue" : issueID
                         ,"pageNumbers" : pgNumber
                         }
-            ).json()
+            )
+        # logging.info(articleIDsReq.url)
+        articleIDsJS = articleIDsReq.json()
         pageArticleIDs = [str(x['ArticleId'])
                             for x in articleIDsJS[0]['Articles']]
         ## Get article information
         sleep(random.choice(sleepSecs))
-        articleInfoJS = requests.get(
+        articleInfoReq = requests.get(
                 url="https://www.pressreader.com/api/articles/GetItems",
                 params={
                         "accessToken" : accessToken
                         ,"articles" : ",".join(pageArticleIDs)
                         ,"options" : 1
                         }
-            ).json()
+            )
+        # logging.info(articleIDsReq.url)
+        articleInfoJS = articleInfoReq.json()
         ## Loop through the articles
         for articleJS in articleInfoJS['Articles']:
             ## tba2 -> PressReaderArticles
@@ -194,11 +209,7 @@ def upload_to_sql(
             columnDict=columnDict,
             sqlTableName=sqlName
         )
-        ## Run commmand
-        run_sql_command(
-            sqlQuery=iq,
-            database=db
-        )
+        
 
     elif sqlName == "PressReaderArticles":
         columnDict = {
@@ -215,11 +226,7 @@ def upload_to_sql(
             columnDict=columnDict,
             sqlTableName=sqlName
         )
-        ## Run commmand
-        run_sql_command(
-            sqlQuery=iq,
-            database=db
-        )
+        
 
     elif sqlName == "PressReaderImages":
         columnDict = {
@@ -234,14 +241,17 @@ def upload_to_sql(
             columnDict=columnDict,
             sqlTableName=sqlName
         )
-        ## Run commmand
-        run_sql_command(
-            sqlQuery=iq,
-            database=db
-        )
 
     else:
         raise ValueError("Unrecognised sqlName: `{sqlName}`")
+
+    logging.info(f"QUERY: {iq}")
+    ## Run commmand
+    run_sql_command(
+        sqlQuery=iq,
+        database=db
+    )
+
 
 def rows_to_strings(df,columnDict):
     
