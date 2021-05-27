@@ -58,8 +58,8 @@ CIDs = [
 JS = [
       {
                 "publicationCID" : cid,
-                "startDate" : "2021-01-01",
-                "endDate" : "2021-05-08"
+                "startDate" : "2021-05-08",
+                "endDate" : "2021-05-23"
         }
       for cid in CIDs
       

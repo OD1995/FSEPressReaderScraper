@@ -97,8 +97,8 @@ def scrape_PressReader(
     for pgNumber in range(1,totalPages+1):
         ## tba1 -> PressReaderPublicationPages
         tba1 = {}
-        ## Create a UUID for each publication page
-        tba1['PublicationPageID'] = str(uuid.uuid4())
+        ## Create an ID for each publication page
+        tba1['PublicationPageID'] = f"{issueID}-{pgNumber}"
         scale = pageScales[pgNumber]
         if scale == 0:
             scale = max(pageScales.values())
