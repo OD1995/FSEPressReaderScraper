@@ -10,10 +10,11 @@ import logging
 
 def get_df_from_sqlQuery(
     sqlQuery,
-    database
+    database,
+    local=False
 ):
     ## Create connection string
-    connectionString = get_connection_string(database)
+    connectionString = get_connection_string(database,local)
     logging.info(f'Connection string created: {connectionString}')
     ## Execute SQL query and get results into df 
     with pyodbc.connect(connectionString) as conn:
@@ -24,21 +25,24 @@ def get_df_from_sqlQuery(
 
 def run_sql_command(
     sqlQuery,
-    database
+    database,
+    local=False
 ):
     ## Create connection string
-    connectionString = get_connection_string(database)
+    connectionString = get_connection_string(database,local)
     ## Run query
     with pyodbc.connect(connectionString) as conn:
         with conn.cursor() as cursor:
             cursor.execute(sqlQuery)
 
 
-def get_connection_string(database):
+def get_connection_string(database,local):
     username = 'matt.shepherd'
     password = "4rsenal!PG01"
-    driver = '{ODBC Driver 17 for SQL Server}'
-    # driver = 'SQL Server Native Client 11.0'
+    if local:
+        driver = 'SQL Server Native Client 11.0'
+    else:
+        driver = '{ODBC Driver 17 for SQL Server}'
     server = "fse-inf-live-uk.database.windows.net"
     # database = 'AzureCognitive'
     ## Create connection string

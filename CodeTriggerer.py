@@ -36,34 +36,58 @@ print(S)
 #print(E-S)
 #print(E)
 
-CIDs = [
-'1043',
-'1048',
-'1039',
-'1069',
-'1071',
-'1237',
-'1070',
-'1259',
-'1190',
-'1545',
-'1029',
-'1054',
-'9xvz',
-'1702',
-'1191',
-'9029',
-        ]
-
+### WST Press
+#CIDs = [
+#'1043',
+#'1048',
+#'1039',
+#'1069',
+#'1071',
+#'1237',
+#'1070',
+#'1259',
+#'1190',
+#'1545',
+#'1029',
+#'1054',
+#'9xvz',
+#'1702',
+#'1191',
+#'9029',
+#        ]
+#
+#JS = [
+#      {
+#                "publicationCID" : cid,
+#                "startDate" : "2021-05-23",
+#                "endDate" : "2021-06-06"
+#        }
+#      for cid in CIDs
+#      
+#      ]
+            
 JS = [
+#      {
+#                "publicationCID" : '6696',
+#                "startDate" : "2021-05-06",
+#                "endDate" : "2021-06-14"
+#        },
       {
-                "publicationCID" : cid,
-                "startDate" : "2021-05-08",
-                "endDate" : "2021-05-23"
-        }
-      for cid in CIDs
-      
-      ]
+                "publicationCID" : '8587',
+                "startDate" : "2021-02-07",
+                "endDate" : "2021-06-14"
+        },
+      {
+                "publicationCID" : '6794',
+                "startDate" : "2021-02-07",
+                "endDate" : "2021-06-14"
+        },
+#      {
+#                "publicationCID" : '',
+#                "startDate" : "2021-02-01",
+#                "endDate" : "2021-06-14"
+#        },      
+      ] 
 
 r = requests.post(
         url="https://fsepressreaderscraper.azurewebsites.net/api/HttpTriggerAddToQueue",

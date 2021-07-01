@@ -14,7 +14,9 @@ import azure.durable_functions as df
 
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
-    result = yield context.call_activity('ScrapePressReader', json.loads(context._input))
+    I = json.loads(context._input)
+    logging.info(I)
+    result = yield context.call_activity('ScrapePressReader', I)
     return result
 
 main = df.Orchestrator.create(orchestrator_function)

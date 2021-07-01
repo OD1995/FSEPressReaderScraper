@@ -25,8 +25,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         ## Create list from startDate to endDate
         start = datetime.strptime(startDate, "%Y-%m-%d")
         end = datetime.strptime(endDate, "%Y-%m-%d")
-        dates = [(start + timedelta(days=x)).date()
-                    for x in range(0, (end-start).days+1)]
+        dates = [
+            (start + timedelta(days=x)).date()
+            for x in range(0, (end-start).days+1)
+            ]
         ## Create insert command
         insertCommand = create_insert_query(
             df=pd.DataFrame(

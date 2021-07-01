@@ -26,5 +26,10 @@ async def main(req: func.HttpRequest, starter: str) -> func.HttpResponse:
         publishedDate=req.params.get("publishedDate"),
         uri=A.get("statusQueryGetUri")
     )
+    update_row_status(
+        publicationCID=req.params.get("publicationCID"),
+        publishedDate=req.params.get("publishedDate"),
+        status='Starting'
+    )
     
     return csr
