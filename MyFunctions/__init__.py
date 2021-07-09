@@ -63,7 +63,6 @@ def scrape_PressReader(
     logging.info(f"Publication Name: {publicationName}")
     logging.info(f"date: {dateStr}")
     accessToken = os.getenv("PressReader_AccessToken")
-    # accessToken = "LpyrD0kdN70fR5eb_UjeVWPz6FFuWH-1leMi3b81tcVYceXmMl1G2UGOgwQb9KlfmaOHb0EHJueEnxarYQdSkA!!"
 
 
     PressReaderPublicationPages_rows = []
